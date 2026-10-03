@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --color-warm-bg: #FAF8F5;
+  --color-warm-surface: #F5EFEB;
+  --color-warm-card: #FFFFFF;
+  --color-warm-border: #EADBCE;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-warm-bg);
+  color: #292524;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-serif);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

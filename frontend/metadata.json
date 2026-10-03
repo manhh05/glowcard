@@ -1,0 +1,6 @@
+{
+  "name": "Glowcard - Nến Thơm & Thiệp Sáp Nghệ Thuật",
+  "description": "Cửa hàng trực tuyến chuyên cung cấp nến thơm thủ công, thiệp sáp thơm nghệ thuật và các set quà tặng cao cấp mang thông điệp yêu thương.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

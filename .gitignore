@@ -4,17 +4,21 @@ frontend/dist/
 frontend/build/
 frontend/.vite/
 
-# Backend
-backend/venv/
-backend/__pycache__/
-backend/**/*.pyc
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
 
 # Environment variables
 .env*
 !.env.example
-frontend/.env.example
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
 
 # General
 coverage/
-.DS_Store
 *.log

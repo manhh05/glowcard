@@ -1,1 +1,6 @@
-from app.models.product import Scent
+from app.models.product import (
+    ComboComponent,
+    Product,
+    ProductVariant,
+    Scent,
+)

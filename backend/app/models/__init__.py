@@ -4,3 +4,5 @@ from app.models.product import (
     ProductVariant,
     Scent,
 )
+
+from app.models.user import Admin, ShippingAddress, User

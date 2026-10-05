@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, products, users
+from app.routers import auth, products, users, cart
 
 app = FastAPI(title="Glowcard API")
 
@@ -13,3 +13,4 @@ def health():
 app.include_router(products.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(cart.router)

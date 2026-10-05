@@ -6,3 +6,4 @@ from app.models.product import (
 )
 
 from app.models.user import Admin, ShippingAddress, User
+from app.models.cart import Cart, CartItem, CartItemSelection

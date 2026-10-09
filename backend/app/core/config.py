@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     CUSTOMER_TOKEN_MINUTES: int = 60 * 24 * 7  # 7 ngày
     ADMIN_TOKEN_MINUTES: int = 60 * 8          # 8 tiếng
     SHIPPING_FEE: int = 0  # VND, business chưa chốt
+    PAYOS_ENABLED: bool = False
+    CORS_ORIGINS: str = "http://localhost:5173"  # nhiều domain thì cách nhau bằng dấu phẩy
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

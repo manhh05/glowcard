@@ -124,6 +124,11 @@ def list_orders(db: Session, user: User) -> list[OrderListItem]:
 
 
 def create_order(db: Session, user: User, data: OrderCreateIn) -> OrderDetail:
+    if data.payment_method == "PAYOS" and not settings.PAYOS_ENABLED:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "PAYOS payment method is not enabled"
+        )
+
     address = db.scalar(
         select(ShippingAddress).where(
             ShippingAddress.id == data.address_id,

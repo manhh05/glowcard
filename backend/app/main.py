@@ -2,8 +2,18 @@ from fastapi import FastAPI
 
 from app.routers import auth, products, users, cart, orders, admin_orders, admin_products, admin_dashboard
 
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+
 app = FastAPI(title="Glowcard API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health", tags=["health"])
 def health():

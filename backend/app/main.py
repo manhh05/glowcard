@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, products, users, cart, orders, admin_orders
+from app.routers import auth, products, users, cart, orders, admin_orders, admin_products, admin_dashboard
 
 app = FastAPI(title="Glowcard API")
 
@@ -16,3 +16,5 @@ app.include_router(users.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(admin_orders.router)
+app.include_router(admin_products.router)
+app.include_router(admin_dashboard.router)

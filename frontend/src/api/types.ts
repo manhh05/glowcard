@@ -9,3 +9,4 @@ export type Scent = Schemas['ScentOut'];
 export type ComboComponent = Schemas['ComboComponentOut'];
 
 export type ProductType = 'CANDLE' | 'CARD' | 'COMBO';
+export type ScentBrief = Schemas['ScentBrief'];

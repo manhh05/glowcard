@@ -1105,6 +1105,8 @@ export interface components {
             name: string;
             /** Product Type */
             product_type: string;
+            /** Description */
+            description: string;
             /** Image Url */
             image_url: string | null;
             /** Featured */
@@ -1115,8 +1117,16 @@ export interface components {
             price_from: number;
             /** In Stock */
             in_stock: boolean;
-            /** Description */
-            description: string;
+            /** Available Sizes */
+            available_sizes: number[];
+            /** Scents */
+            scents: components["schemas"]["ScentBrief"][];
+            /** Combo Candle Count */
+            combo_candle_count: number | null;
+            /** Combo Candle Size */
+            combo_candle_size: number | null;
+            /** Combo Card Count */
+            combo_card_count: number | null;
             /** Story */
             story: string | null;
             /** Burn Time */
@@ -1127,6 +1137,8 @@ export interface components {
             variants: components["schemas"]["VariantOut"][];
             /** Components */
             components: components["schemas"]["ComboComponentOut"][];
+            /** Candle Variants */
+            candle_variants: components["schemas"]["VariantOut"][];
         };
         /** ProductListItem */
         ProductListItem: {
@@ -1138,6 +1150,8 @@ export interface components {
             name: string;
             /** Product Type */
             product_type: string;
+            /** Description */
+            description: string;
             /** Image Url */
             image_url: string | null;
             /** Featured */
@@ -1148,6 +1162,16 @@ export interface components {
             price_from: number;
             /** In Stock */
             in_stock: boolean;
+            /** Available Sizes */
+            available_sizes: number[];
+            /** Scents */
+            scents: components["schemas"]["ScentBrief"][];
+            /** Combo Candle Count */
+            combo_candle_count: number | null;
+            /** Combo Candle Size */
+            combo_candle_size: number | null;
+            /** Combo Card Count */
+            combo_card_count: number | null;
         };
         /** ProductUpdateIn */
         ProductUpdateIn: {
@@ -1183,6 +1207,17 @@ export interface components {
             full_name: string;
             /** Phone */
             phone?: string | null;
+        };
+        /** ScentBrief */
+        ScentBrief: {
+            /** Id */
+            id: number;
+            /** Slug */
+            slug: string;
+            /** Name Vi */
+            name_vi: string;
+            /** Name En */
+            name_en: string;
         };
         /** ScentCreateIn */
         ScentCreateIn: {

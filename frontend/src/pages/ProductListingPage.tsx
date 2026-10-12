@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useProducts } from '../context/ProductContext';
+import { useProductList } from '../hooks/useCatalog';
 import { ProductCard } from '../components/ProductCard';
-import { STANDARD_SCENTS } from '../data/mockData';
 import { ProductType, CandleSize } from '../types';
 import { Search, SlidersHorizontal, X, ArrowUpDown, Sparkles } from 'lucide-react';
 
 export const ProductListingPage: React.FC = () => {
-  const { products } = useProducts();
+  const { products, scents, loading, error, reload } = useProductList();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Search & Filters state
@@ -79,6 +78,15 @@ export const ProductListingPage: React.FC = () => {
       return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
     });
   }, [products, searchQuery, selectedType, selectedSize, selectedScent, maxPrice, sortBy]);
+
+  const sliderMax = useMemo(
+    () =>
+      Math.max(
+        200000,
+        Math.ceil(Math.max(0, ...products.map((p) => p.price)) / 50000) * 50000
+      ),
+    [products]
+  );
 
   const resetFilters = () => {
     setSearchQuery('');
@@ -276,7 +284,7 @@ export const ProductListingPage: React.FC = () => {
               >
                 Tất cả mùi hương
               </button>
-              {STANDARD_SCENTS.map((scent) => (
+              {scents.map((scent) => (
                 <button
                   key={scent.id}
                   onClick={() => setSelectedScent(scent.nameEn)}
@@ -304,17 +312,16 @@ export const ProductListingPage: React.FC = () => {
             </div>
             <input
               type="range"
-              min="100000"
-              max="1000000"
-              step="50000"
-              value={maxPrice}
+              min="20000"
+              max={sliderMax}
+              step="10000"
+              value={Math.min(maxPrice, sliderMax)}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full accent-amber-800 cursor-pointer"
             />
             <div className="flex justify-between text-[11px] text-stone-400">
-              <span>100k</span>
-              <span>500k</span>
-              <span>1.000k+</span>
+              <span>20k</span>
+              <span>{sliderMax / 1000}k</span>
             </div>
           </div>
 
@@ -330,7 +337,21 @@ export const ProductListingPage: React.FC = () => {
 
         {/* Product Grid Area */}
         <main className="lg:col-span-3">
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center text-xs text-stone-500">
+              Đang tải sản phẩm...
+            </div>
+          ) : error ? (
+            <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-3">
+              <p className="text-xs text-red-600">{error.message}</p>
+              <button
+                onClick={reload}
+                className="py-2 px-4 rounded-xl bg-stone-900 text-stone-50 text-xs font-medium"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-4">
               <div className="w-12 h-12 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-400">
                 <Search className="w-6 h-6" />
@@ -438,7 +459,7 @@ export const ProductListingPage: React.FC = () => {
                 className="w-full p-2.5 text-xs rounded-xl border border-stone-200 bg-stone-50"
               >
                 <option value="all">Tất cả mùi hương</option>
-                {STANDARD_SCENTS.map((scent) => (
+                {scents.map((scent) => (
                   <option key={scent.id} value={scent.nameEn}>
                     {scent.nameVi}
                   </option>

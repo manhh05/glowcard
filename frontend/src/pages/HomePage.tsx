@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useProducts } from '../context/ProductContext';
+import { useProductList } from '../hooks/useCatalog';
 import { ProductCard } from '../components/ProductCard';
 import { ProductArtwork } from '../components/ProductArtwork';
 import { Sparkles, Heart, Feather, ArrowRight, ShieldCheck, Flame, Gift } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
-  const { products } = useProducts();
+  const { products, loading, error, reload } = useProductList();
   const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
 
   return (
@@ -181,15 +181,29 @@ export const HomePage: React.FC = () => {
             to="/products"
             className="mt-4 sm:mt-0 text-xs font-medium text-amber-900 hover:text-amber-700 flex items-center gap-1"
           >
-            Xem tất cả sản phẩm ({products.length}) →
+            Xem tất cả sản phẩm{products.length > 0 ? ` (${products.length})` : ''} →
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+                {loading ? (
+          <p className="text-xs text-stone-500 text-center py-10">Đang tải sản phẩm...</p>
+        ) : error ? (
+          <div className="text-center py-10 space-y-3">
+            <p className="text-xs text-red-600">{error.message}</p>
+            <button
+              onClick={reload}
+              className="py-2 px-4 rounded-xl bg-stone-900 text-stone-50 text-xs font-medium"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. Craftsmanship & Custom Scent Feature Spotlight */}
@@ -218,7 +232,7 @@ export const HomePage: React.FC = () => {
 
               <div className="pt-2">
                 <Link
-                  to="/products/nen-thom-glowcard-classic"
+                  to="/products/nen-thom-glowcard"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium transition-colors"
                 >
                   Thử phối mùi hương ngay

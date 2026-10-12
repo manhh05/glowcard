@@ -42,6 +42,7 @@ export interface Product {
   ingredients?: string;
   featured?: boolean;
   categoryNameVi: string;
+  inStock?: boolean;
 }
 
 export interface ComboCandleSelection {

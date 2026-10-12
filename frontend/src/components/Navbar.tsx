@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const { user, isAuthenticated, isAdmin, logout, loginCustomer, loginAdmin } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { itemCount } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -62,55 +62,6 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      {/* Top Demo State Switcher Helper (Aesthetic banner to easily switch roles for testing) */}
-      <aside aria-label="Bộ chuyển đổi vai trò thử nghiệm" className="bg-stone-900 text-stone-300 text-xs py-1.5 px-4 border-b border-stone-800">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Trạng thái thử nghiệm:</span>
-            <strong className="text-white font-medium">
-              {isAdmin ? 'Quản trị viên (Admin)' : isAuthenticated ? 'Khách hàng đăng nhập' : 'Khách vãng lai (Guest)'}
-            </strong>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-stone-400 hidden sm:inline">Chuyển nhanh:</span>
-            <button
-              onClick={() => {
-                logout();
-                setUserDropdownOpen(false);
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                !isAuthenticated ? 'bg-amber-600 text-white font-medium' : 'hover:text-white hover:bg-stone-800'
-              }`}
-            >
-              Khách vãng lai
-            </button>
-            <button
-              onClick={() => {
-                loginCustomer('customer@glowcard.vn', '123456');
-                setUserDropdownOpen(false);
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                isAuthenticated && !isAdmin ? 'bg-amber-600 text-white font-medium' : 'hover:text-white hover:bg-stone-800'
-              }`}
-            >
-              Khách hàng
-            </button>
-            <button
-              onClick={() => {
-                loginAdmin('admin', 'glowcard123');
-                setUserDropdownOpen(false);
-              }}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                isAdmin ? 'bg-amber-600 text-white font-medium' : 'hover:text-white hover:bg-stone-800'
-              }`}
-            >
-              Admin
-            </button>
-          </div>
-        </div>
-      </aside>
-
       {/* Main Top Navigation Bar (Strict 3-zone contract) */}
       <header className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-[#EADBCE]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">

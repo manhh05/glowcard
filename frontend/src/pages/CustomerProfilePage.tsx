@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ShippingAddress } from '../types';
+import { authErrorMessage } from '../api/errors';
 import { 
   User, 
   MapPin, 
@@ -22,6 +23,19 @@ export const CustomerProfilePage: React.FC = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [profileSavedMsg, setProfileSavedMsg] = useState(false);
 
+  const [actionError, setActionError] = useState('');
+
+  const run = async (task: () => Promise<unknown>): Promise<boolean> => {
+    setActionError('');
+    try {
+      await task();
+      return true;
+    } catch (e) {
+      setActionError(authErrorMessage(e));
+      return false;
+    }
+  };
+
   // Address modal/form state
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
@@ -33,18 +47,30 @@ export const CustomerProfilePage: React.FC = () => {
   const [addrStreet, setAddrStreet] = useState('');
   const [addrIsDefault, setAddrIsDefault] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({
-      fullName: name,
-      phone: phone,
-    });
+    const ok = await run(() => updateProfile({ fullName: name, phone }));
+    if (!ok) return;
     setIsEditingProfile(false);
     setProfileSavedMsg(true);
     setTimeout(() => setProfileSavedMsg(false), 3000);
   };
 
+  const startEditingProfile = () => {
+    // Lấy dữ liệu mới nhất (hồ sơ có thể vừa được làm mới từ server)
+    setName(user?.fullName || '');
+    setPhone(user?.phone || '');
+    setActionError('');
+    setIsEditingProfile(true);
+  };
+
+  const closeAddressModal = () => {
+    setAddressModalOpen(false);
+    setActionError('');
+  };
+
   const openNewAddressModal = () => {
+    setActionError('');
     setEditingAddressId(null);
     setAddrName(user?.fullName || '');
     setAddrPhone(user?.phone || '');
@@ -57,6 +83,7 @@ export const CustomerProfilePage: React.FC = () => {
   };
 
   const openEditAddressModal = (addr: ShippingAddress) => {
+    setActionError('');
     setEditingAddressId(addr.id);
     setAddrName(addr.fullName);
     setAddrPhone(addr.phone);
@@ -68,33 +95,24 @@ export const CustomerProfilePage: React.FC = () => {
     setAddressModalOpen(true);
   };
 
-  const handleSaveAddress = (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addrStreet.trim()) return;
 
-    if (editingAddressId) {
-      updateAddress(editingAddressId, {
-        fullName: addrName,
-        phone: addrPhone,
-        province: addrProvince,
-        district: addrDistrict,
-        ward: addrWard,
-        streetAddress: addrStreet,
-        isDefault: addrIsDefault,
-      });
-    } else {
-      addAddress({
-        fullName: addrName,
-        phone: addrPhone,
-        province: addrProvince,
-        district: addrDistrict,
-        ward: addrWard,
-        streetAddress: addrStreet,
-        isDefault: addrIsDefault,
-      });
-    }
+    const data = {
+      fullName: addrName,
+      phone: addrPhone,
+      province: addrProvince,
+      district: addrDistrict,
+      ward: addrWard,
+      streetAddress: addrStreet,
+      isDefault: addrIsDefault,
+    };
 
-    setAddressModalOpen(false);
+    const ok = await run(() =>
+      editingAddressId ? updateAddress(editingAddressId, data) : addAddress(data)
+    );
+    if (ok) closeAddressModal();
   };
 
   if (!user) {
@@ -126,6 +144,12 @@ export const CustomerProfilePage: React.FC = () => {
         </div>
       )}
 
+      {actionError && !addressModalOpen && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+          {actionError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Personal Info Card */}
@@ -139,7 +163,7 @@ export const CustomerProfilePage: React.FC = () => {
               {!isEditingProfile && (
                 <button
                   type="button"
-                  onClick={() => setIsEditingProfile(true)}
+                  onClick={startEditingProfile}
                   className="text-xs text-amber-800 hover:text-amber-900 font-semibold"
                 >
                   Chỉnh sửa
@@ -277,7 +301,7 @@ export const CustomerProfilePage: React.FC = () => {
                       {!addr.isDefault && (
                         <button
                           type="button"
-                          onClick={() => setDefaultAddress(addr.id)}
+                          onClick={() => run(() => setDefaultAddress(addr.id))}
                           className="text-[11px] text-stone-600 hover:text-stone-900 font-medium px-2 py-1 rounded hover:bg-stone-100"
                         >
                           Đặt làm mặc định
@@ -296,7 +320,7 @@ export const CustomerProfilePage: React.FC = () => {
                       {user.addresses.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => deleteAddress(addr.id)}
+                          onClick={() => run(() => deleteAddress(addr.id))}
                           className="p-1.5 text-stone-400 hover:text-red-600 rounded hover:bg-red-50"
                           title="Xóa địa chỉ"
                         >
@@ -324,12 +348,18 @@ export const CustomerProfilePage: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={() => setAddressModalOpen(false)}
+                onClick={closeAddressModal}
                 className="p-1 rounded-full text-stone-400 hover:text-stone-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {actionError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+                {actionError}
+              </div>
+            )}
 
             <form onSubmit={handleSaveAddress} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -415,7 +445,7 @@ export const CustomerProfilePage: React.FC = () => {
               <div className="pt-3 border-t border-stone-100 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setAddressModalOpen(false)}
+                  onClick={closeAddressModal}
                   className="py-2.5 px-4 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-50"
                 >
                   Hủy

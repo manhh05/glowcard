@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, ArrowRight } from 'lucide-react';
+import { authErrorMessage } from '../api/errors';
+import { UserPlus } from 'lucide-react';
 
 export const CustomerRegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -17,26 +18,34 @@ export const CustomerRegisterPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !phone || !password) {
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
       setErrorMsg('Vui lòng điền đầy đủ các trường thông tin.');
       return;
     }
-
+    if (password.length < 8) {
+      setErrorMsg('Mật khẩu cần tối thiểu 8 ký tự.');
+      return;
+    }
     if (password !== confirmPassword) {
       setErrorMsg('Mật khẩu xác nhận không trùng khớp.');
       return;
     }
 
+    setErrorMsg('');
     setIsSubmitting(true);
-    await registerCustomer(name, email, phone, password);
-    setIsSubmitting(false);
-    navigate('/profile');
+    try {
+      await registerCustomer(name.trim(), email.trim(), phone.trim(), password);
+      navigate('/profile');
+    } catch (err) {
+      setErrorMsg(authErrorMessage(err, 'login'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="max-w-md mx-auto px-4 py-14">
       <div className="bg-white rounded-3xl border border-[#EADBCE] p-8 shadow-sm space-y-6">
-        
         <div className="text-center space-y-1">
           <Link to="/" className="font-serif text-3xl font-medium tracking-tight text-stone-900 block">
             Glowcard
@@ -64,6 +73,7 @@ export const CustomerRegisterPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nguyễn Văn A"
+              autoComplete="name"
               className="w-full p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 bg-stone-50 focus:bg-white text-stone-900"
             />
           </div>
@@ -76,6 +86,7 @@ export const CustomerRegisterPage: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@vidu.com"
+              autoComplete="email"
               className="w-full p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 bg-stone-50 focus:bg-white text-stone-900"
             />
           </div>
@@ -85,9 +96,11 @@ export const CustomerRegisterPage: React.FC = () => {
             <input
               type="tel"
               required
+              maxLength={20}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="0901234567"
+              autoComplete="tel"
               className="w-full p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 bg-stone-50 focus:bg-white text-stone-900"
             />
           </div>
@@ -97,9 +110,11 @@ export const CustomerRegisterPage: React.FC = () => {
             <input
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder="Tối thiểu 8 ký tự"
+              autoComplete="new-password"
               className="w-full p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 bg-stone-50 focus:bg-white text-stone-900"
             />
           </div>
@@ -112,6 +127,7 @@ export const CustomerRegisterPage: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Nhập lại mật khẩu..."
+              autoComplete="new-password"
               className="w-full p-2.5 rounded-xl border border-stone-300 focus:outline-none focus:border-stone-900 bg-stone-50 focus:bg-white text-stone-900"
             />
           </div>
@@ -120,10 +136,10 @@ export const CustomerRegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-50 font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-stone-50 font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Đăng ký tài khoản</span>
+              <span>{isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký tài khoản'}</span>
             </button>
           </div>
         </form>
@@ -134,7 +150,6 @@ export const CustomerRegisterPage: React.FC = () => {
             Đăng nhập ngay
           </Link>
         </div>
-
       </div>
     </div>
   );

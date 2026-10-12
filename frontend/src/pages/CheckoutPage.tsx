@@ -54,21 +54,25 @@ export const CheckoutPage: React.FC = () => {
   const shippingFee = 30000;
   const orderTotal = subtotal + shippingFee;
 
-  const handleSaveNewAddress = (e: React.FormEvent) => {
+  const handleSaveNewAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAddrStreet.trim()) return;
 
-    addAddress({
-      fullName: newAddrName || user?.fullName || 'Khách hàng',
-      phone: newAddrPhone || user?.phone || '0901234567',
-      province: newAddrProvince,
-      district: newAddrDistrict,
-      ward: newAddrWard,
-      streetAddress: newAddrStreet,
-      isDefault: !user?.addresses || user.addresses.length === 0,
-    });
-
-    setIsAddingNewAddress(false);
+    try {
+      const created = await addAddress({
+        fullName: newAddrName || user?.fullName || 'Khách hàng',
+        phone: newAddrPhone || user?.phone || '',
+        province: newAddrProvince,
+        district: newAddrDistrict,
+        ward: newAddrWard,
+        streetAddress: newAddrStreet,
+        isDefault: !user?.addresses || user.addresses.length === 0,
+      });
+      setSelectedAddressId(created.id);
+      setIsAddingNewAddress(false);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Không lưu được địa chỉ');
+    }
   };
 
   const handlePlaceOrder = () => {

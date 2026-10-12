@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Product, ProductVariant
-from app.schemas.product import ProductDetail, ProductListItem
+from app.schemas.product import ProductDetail, ProductListItem, ScentBrief
 
 
 def _stock_totals(db: Session) -> dict[tuple[str, int | None], int]:
@@ -50,6 +50,68 @@ def _base_query():
     )
 
 
+def _list_fields(product: Product, totals: dict) -> dict:
+    active = [v for v in product.variants if v.is_active]
+    candle_comps = [c for c in product.components if c.component_type == "CANDLE"]
+    card_comps = [c for c in product.components if c.component_type == "CARD"]
+
+    if product.product_type == "COMBO":
+        sizes = sorted({c.size_ml for c in candle_comps if c.size_ml is not None})
+        candle_count = sum(c.quantity for c in candle_comps)
+        candle_size = sizes[0] if len(sizes) == 1 else None
+        card_count = sum(c.quantity for c in card_comps)
+    else:
+        sizes = sorted({v.size_ml for v in active if v.size_ml is not None})
+        candle_count = candle_size = card_count = None
+
+    scents = {v.scent.id: v.scent for v in active if v.scent is not None}
+
+    return dict(
+        id=product.id,
+        slug=product.slug,
+        name=product.name,
+        product_type=product.product_type,
+        description=product.description,
+        image_url=product.image_url,
+        featured=product.featured,
+        allow_custom_scent=product.allow_custom_scent,
+        price_from=_price_from(product),
+        in_stock=_in_stock(product, totals),
+        available_sizes=sizes,
+        scents=[ScentBrief.model_validate(s) for _, s in sorted(scents.items())],
+        combo_candle_count=candle_count,
+        combo_candle_size=candle_size,
+        combo_card_count=card_count,
+    )
+
+
+def _candle_variants_for(db: Session, product: Product) -> list[ProductVariant]:
+    if product.product_type != "COMBO":
+        return []
+    sizes = {
+        c.size_ml
+        for c in product.components
+        if c.component_type == "CANDLE" and c.size_ml is not None
+    }
+    if not sizes:
+        return []
+    return list(
+        db.scalars(
+            select(ProductVariant)
+            .join(Product, Product.id == ProductVariant.product_id)
+            .where(
+                Product.product_type == "CANDLE",
+                Product.is_active.is_(True),
+                ProductVariant.is_active.is_(True),
+                ProductVariant.size_ml.in_(sizes),
+                ProductVariant.scent_id.is_not(None),
+            )
+            .options(selectinload(ProductVariant.scent))
+            .order_by(ProductVariant.size_ml, ProductVariant.scent_id)
+        )
+    )
+
+
 def list_products(
     db: Session,
     product_type: str | None = None,
@@ -66,18 +128,7 @@ def list_products(
 
     totals = _stock_totals(db)
     return [
-        ProductListItem(
-            id=p.id,
-            slug=p.slug,
-            name=p.name,
-            product_type=p.product_type,
-            image_url=p.image_url,
-            featured=p.featured,
-            allow_custom_scent=p.allow_custom_scent,
-            price_from=_price_from(p),
-            in_stock=_in_stock(p, totals),
-        )
-        for p in db.scalars(stmt).all()
+        ProductListItem(**_list_fields(p, totals)) for p in db.scalars(stmt).all()
     ]
 
 
@@ -91,19 +142,11 @@ def get_product(db: Session, slug: str) -> ProductDetail | None:
         key=lambda v: (v.size_ml or 0, v.scent.name_en if v.scent else ""),
     )
     return ProductDetail(
-        id=product.id,
-        slug=product.slug,
-        name=product.name,
-        product_type=product.product_type,
-        image_url=product.image_url,
-        featured=product.featured,
-        allow_custom_scent=product.allow_custom_scent,
-        price_from=_price_from(product),
-        in_stock=_in_stock(product, _stock_totals(db)),
-        description=product.description,
+        **_list_fields(product, _stock_totals(db)),
         story=product.story,
         burn_time=product.burn_time,
         ingredients=product.ingredients,
         variants=variants,
         components=product.components,
+        candle_variants=_candle_variants_for(db, product),
     )

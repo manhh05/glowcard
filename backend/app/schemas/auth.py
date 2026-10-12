@@ -21,3 +21,7 @@ class AdminLoginIn(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class AdminMeOut(BaseModel):
+    id: int
+    username: str

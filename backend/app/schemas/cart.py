@@ -40,6 +40,7 @@ class SelectionOut(BaseModel):
 class CartItemOut(BaseModel):
     id: int
     product_id: int
+    product_slug: str
     product_name: str
     product_type: str
     image_url: str | None
@@ -60,7 +61,9 @@ class CartItemOut(BaseModel):
 
 class CartOut(BaseModel):
     items: list[CartItemOut]
-    subtotal: int  # đã loại các dòng hết hàng
+    subtotal: int
+    shipping_fee: int
+    total: int
     item_count: int
     has_stock_issue: bool
     can_checkout: bool

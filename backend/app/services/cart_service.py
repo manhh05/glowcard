@@ -6,6 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
+
 from app.models import (
     Cart,
     CartItem,
@@ -385,6 +387,7 @@ def _build_cart(db: Session, items: list[CartItem]) -> CartOut:
             CartItemOut(
                 id=item.id,
                 product_id=item.product_id,
+                product_slug=item.product.slug,
                 product_name=item.product.name,
                 product_type=item.product.product_type,
                 image_url=item.product.image_url,
@@ -419,9 +422,13 @@ def _build_cart(db: Session, items: list[CartItem]) -> CartOut:
         )
 
     has_issue = any(i.has_stock_issue for i in out_items)
+    subtotal = sum(i.line_total for i in out_items if not i.is_out_of_stock)
+    shipping_fee = settings.SHIPPING_FEE if out_items else 0
     return CartOut(
         items=out_items,
-        subtotal=sum(i.line_total for i in out_items if not i.is_out_of_stock),
+        subtotal=subtotal,
+        shipping_fee=shipping_fee,
+        total=subtotal + shipping_fee,
         item_count=sum(i.quantity for i in out_items),
         has_stock_issue=has_issue,
         can_checkout=bool(out_items) and not has_issue,

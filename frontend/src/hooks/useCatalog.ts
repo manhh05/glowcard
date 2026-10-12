@@ -3,7 +3,7 @@ import { ApiError } from '../api/client';
 import { toProduct } from '../api/adapters';
 import { getProduct, listProducts } from '../api/products';
 
-function useAsync<T>(load: () => Promise<T>, deps: DependencyList) {
+export function useAsync<T>(load: () => Promise<T>, deps: DependencyList) {
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;

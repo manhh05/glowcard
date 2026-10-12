@@ -27,3 +27,25 @@ export function authErrorMessage(
       return e.message || 'Có lỗi xảy ra, vui lòng thử lại.';
   }
 }
+
+export function cartErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    const msg = e.message;
+    if (e.status === 409) {
+      if (msg.startsWith('Out of stock'))
+        return 'Sản phẩm này vừa hết hàng, vui lòng chọn mùi khác.';
+      if (msg === 'Cart has stock issues')
+        return 'Một số sản phẩm trong giỏ đã hết hoặc không đủ số lượng. Vui lòng kiểm tra lại giỏ hàng.';
+      return msg;
+    }
+    if (e.status === 400) {
+      return msg === 'Cart is empty' ? 'Giỏ hàng đang trống.' : msg;
+    }
+    if (e.status === 404) {
+      return msg === 'Address not found'
+        ? 'Địa chỉ giao hàng không hợp lệ, vui lòng chọn lại.'
+        : 'Sản phẩm không còn tồn tại.';
+    }
+  }
+  return authErrorMessage(e);
+}

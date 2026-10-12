@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/admin/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Me */
+        get: operations["admin_me_auth_admin_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -599,6 +616,13 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** AdminMeOut */
+        AdminMeOut: {
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+        };
         /** AdminOrderDetail */
         AdminOrderDetail: {
             /** Order Code */
@@ -784,6 +808,8 @@ export interface components {
             id: number;
             /** Product Id */
             product_id: number;
+            /** Product Slug */
+            product_slug: string;
             /** Product Name */
             product_name: string;
             /** Product Type */
@@ -828,6 +854,10 @@ export interface components {
             items: components["schemas"]["CartItemOut"][];
             /** Subtotal */
             subtotal: number;
+            /** Shipping Fee */
+            shipping_fee: number;
+            /** Total */
+            total: number;
             /** Item Count */
             item_count: number;
             /** Has Stock Issue */
@@ -1623,6 +1653,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_me_auth_admin_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMeOut"];
                 };
             };
         };

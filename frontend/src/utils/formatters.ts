@@ -19,8 +19,25 @@ export const formatDateVi = (dateStr: string): string => {
   }
 };
 
+export const formatDateTimeVi = (dateStr: string): string => {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 export const getOrderStatusText = (status: string): string => {
   switch (status) {
+    case 'PENDING':
+      return 'Chờ xác nhận';
     case 'CONFIRMED':
       return 'Đã xác nhận';
     case 'PREPARING':
@@ -29,6 +46,8 @@ export const getOrderStatusText = (status: string): string => {
       return 'Đang giao';
     case 'COMPLETED':
       return 'Hoàn thành';
+    case 'CANCELLED':
+      return 'Đã hủy';
     default:
       return status;
   }
@@ -38,8 +57,13 @@ export const getPaymentStatusText = (status: string): string => {
   switch (status) {
     case 'PAID':
       return 'Đã thanh toán';
+    case 'PENDING':
     case 'UNPAID':
       return 'Chưa thanh toán';
+    case 'FAILED':
+      return 'Thanh toán thất bại';
+    case 'CANCELLED':
+      return 'Đã hủy';
     default:
       return status;
   }

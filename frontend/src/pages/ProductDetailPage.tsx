@@ -4,9 +4,9 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ProductArtwork } from '../components/ProductArtwork';
 import { useProductDetail } from '../hooks/useCatalog';
-import { toProduct, toUiSize } from '../api/adapters';
-import type { ProductDetail, ProductVariant } from '../api/types';
-import type { ComboCandleSelection } from '../types';
+import { toProduct } from '../api/adapters';
+import type { CartItemIn, ProductDetail, ProductVariant } from '../api/types';
+import { cartErrorMessage } from '../api/errors';
 import { formatVND } from '../utils/formatters';
 import {
   Sparkles,
@@ -79,8 +79,8 @@ export const ProductDetailPage: React.FC = () => {
 
 const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const { isAuthenticated, triggerLoginRequirement } = useAuth();
+  const { addItem } = useCart();
+  const { isAuthenticated, isAdmin, triggerLoginRequirement } = useAuth();
 
   const product = useMemo(() => toProduct(detail), [detail]);
   const variants = detail.variants;
@@ -156,6 +156,7 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   const [quantity, setQuantity] = useState(1);
   const [showAddedSuccess, setShowAddedSuccess] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   let currentUnitPrice = product.price;
   if (product.type === 'candle') {
@@ -177,13 +178,23 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
       : { ok: false, text: 'Tạm hết hàng' };
   }
 
-  const handleAddToCart = (isBuyNow: boolean = false) => {
+  const handleAddToCart = async (isBuyNow: boolean = false) => {
+    if (isAdding) return;
+
     if (!isAuthenticated) {
       triggerLoginRequirement(
         'Vui lòng đăng nhập tài khoản khách hàng để thêm sản phẩm vào giỏ hàng và tiến hành thanh toán.'
       );
       return;
     }
+    if (isAdmin) {
+      setValidationError(
+        'Tài khoản quản trị không thể mua hàng. Vui lòng đăng nhập bằng tài khoản khách hàng.'
+      );
+      return;
+    }
+
+    let body: CartItemIn;
 
     if (product.type === 'candle') {
       if (isCustomScent) {
@@ -191,18 +202,26 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
           setValidationError('Vui lòng nhập mô tả mùi hương bạn mong muốn phối chế.');
           return;
         }
-      } else if (!selectedVariant || selectedVariant.stock_quantity <= 0) {
-        setValidationError('Mùi hương này tạm hết hàng, vui lòng chọn mùi khác.');
+        body = {
+          product_id: detail.id,
+          quantity,
+          size_ml: selectedSize,
+          custom_scent_text: customScentText.trim(),
+        };
+      } else {
+        if (!selectedVariant || selectedVariant.stock_quantity <= 0) {
+          setValidationError('Mùi hương này tạm hết hàng, vui lòng chọn mùi khác.');
+          return;
+        }
+        body = { product_id: detail.id, quantity, variant_id: selectedVariant.id };
+      }
+    } else if (product.type === 'wax_card') {
+      if (!cardVariant || cardVariant.stock_quantity <= 0) {
+        setValidationError('Sản phẩm tạm hết hàng.');
         return;
       }
-    }
-
-    if (product.type === 'wax_card' && (!cardVariant || cardVariant.stock_quantity <= 0)) {
-      setValidationError('Sản phẩm tạm hết hàng.');
-      return;
-    }
-
-    if (product.type === 'combo') {
+      body = { product_id: detail.id, quantity, variant_id: cardVariant.id };
+    } else {
       for (let i = 0; i < comboSlots.length; i++) {
         const slot = comboSlots[i];
         if (slot.isCustom) {
@@ -218,48 +237,31 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
           }
         }
       }
+      body = {
+        product_id: detail.id,
+        quantity,
+        selections: comboSlots.map((slot, i) =>
+          slot.isCustom
+            ? { slot_no: i + 1, custom_scent_text: slot.text.trim() }
+            : { slot_no: i + 1, variant_id: slot.variantId }
+        ),
+      };
     }
 
     setValidationError(null);
-
-    // Giỏ hàng hiện vẫn là bản mock (localStorage), sẽ nối API ở đợt 4
-    const comboSelections: ComboCandleSelection[] | undefined =
-      product.type === 'combo'
-        ? comboSlots.map((slot, i) => ({
-            candleNumber: i + 1,
-            scent: slot.isCustom
-              ? CUSTOM_LABEL
-              : detail.candle_variants.find((v) => v.id === slot.variantId)?.scent?.name_vi ?? '',
-            isCustom: slot.isCustom,
-            customScentText: slot.isCustom ? slot.text : '',
-          }))
-        : undefined;
-
-    addToCart({
-      productId: product.id,
-      product,
-      selectedSize:
-        product.type === 'candle' && selectedSize !== null
-          ? toUiSize(selectedSize)
-          : product.comboConfig?.candleSize,
-      selectedScent:
-        product.type === 'candle'
-          ? isCustomScent
-            ? CUSTOM_LABEL
-            : selectedVariant?.scent?.name_vi
-          : undefined,
-      isCustomScent: product.type === 'candle' ? isCustomScent : false,
-      customScentNote: product.type === 'candle' && isCustomScent ? customScentText : undefined,
-      comboSelections,
-      quantity,
-      unitPrice: currentUnitPrice,
-    });
-
-    if (isBuyNow) {
-      navigate('/checkout');
-    } else {
-      setShowAddedSuccess(true);
-      setTimeout(() => setShowAddedSuccess(false), 3000);
+    setIsAdding(true);
+    try {
+      await addItem(body);
+      if (isBuyNow) {
+        navigate('/checkout');
+      } else {
+        setShowAddedSuccess(true);
+        setTimeout(() => setShowAddedSuccess(false), 3000);
+      }
+    } catch (e) {
+      setValidationError(cartErrorMessage(e));
+    } finally {
+      setIsAdding(false);
     }
   };
 

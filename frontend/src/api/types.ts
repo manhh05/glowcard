@@ -21,3 +21,12 @@ export type RegisterIn = Schemas['RegisterIn'];
 export type LoginIn = Schemas['LoginIn'];
 export type AdminLoginIn = Schemas['AdminLoginIn'];
 export type AdminMeOut = Schemas['AdminMeOut'];
+
+export type CartOut = Schemas['CartOut'];
+export type CartItemOut = Schemas['CartItemOut'];
+export type CartItemIn = Schemas['CartItemIn'];
+export type SelectionIn = Schemas['SelectionIn'];
+export type StockIssue = Schemas['StockIssue'];
+export type OrderCreateIn = Schemas['OrderCreateIn'];
+export type OrderDetail = Schemas['OrderDetail'];
+export type OrderListItem = Schemas['OrderListItem'];

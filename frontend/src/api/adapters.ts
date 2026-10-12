@@ -54,3 +54,5 @@ export function toProduct(p: ApiProduct): Product {
     categoryNameVi: CATEGORY_NAME[apiType],
   };
 }
+
+export const toUiType = (apiType: string): UiProductType => TYPE_MAP[apiType as ProductType];

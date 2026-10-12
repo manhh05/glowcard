@@ -1,111 +1,97 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CartItem } from '../types';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
+import * as cartApi from '../api/cart';
+import { authErrorMessage } from '../api/errors';
+import type { CartItemIn, CartItemOut, CartOut } from '../api/types';
+
+const EMPTY_CART: CartOut = {
+  items: [],
+  subtotal: 0,
+  shipping_fee: 0,
+  total: 0,
+  item_count: 0,
+  has_stock_issue: false,
+  can_checkout: false,
+};
 
 interface CartContextType {
-  items: CartItem[];
-  addToCart: (item: Omit<CartItem, 'id'>) => void;
-  updateQuantity: (id: string, delta: number) => void;
-  removeFromCart: (id: string) => void;
-  clearCart: () => void;
+  items: CartItemOut[];
   itemCount: number;
   subtotal: number;
+  shippingFee: number;
+  total: number;
+  canCheckout: boolean;
+  hasStockIssue: boolean;
+  loading: boolean;
+  error: string;
+  refresh: () => Promise<void>;
+  addItem: (body: CartItemIn) => Promise<void>;
+  updateQuantity: (itemId: number, quantity: number) => Promise<void>;
+  removeItem: (itemId: number) => Promise<void>;
+  clear: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const STORAGE_KEY_CART = 'glowcard_cart_items';
-
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_CART);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return [];
-  });
+  const { user } = useAuth();
+  // Giỏ hàng chỉ dành cho khách hàng đã đăng nhập
+  const customerId = user?.role === 'customer' ? user.id : null;
 
+  const [cart, setCart] = useState<CartOut>(EMPTY_CART);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const refresh = useCallback(async () => {
+    if (!customerId) {
+      setCart(EMPTY_CART);
+      setError('');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      setCart(await cartApi.getCart());
+    } catch (e) {
+      setError(authErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [customerId]);
+
+  // Tải giỏ khi đăng nhập, xóa sạch khi đăng xuất hoặc đổi tài khoản
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_CART, JSON.stringify(items));
-    } catch {
-      // ignore
-    }
-  }, [items]);
+    void refresh();
+  }, [refresh]);
 
-  const addToCart = (newItem: Omit<CartItem, 'id'>) => {
-    // Generate unique key based on product + options + scents
-    const optionsKey = [
-      newItem.productId,
-      newItem.selectedSize || 'nosize',
-      newItem.selectedScent || 'noscent',
-      newItem.isCustomScent ? `custom:${newItem.customScentNote}` : 'nocustom',
-      newItem.comboSelections ? JSON.stringify(newItem.comboSelections) : 'nocombo',
-    ].join('_');
-
-    setItems((prevItems) => {
-      const existingIndex = prevItems.findIndex((item) => {
-        const itemKey = [
-          item.productId,
-          item.selectedSize || 'nosize',
-          item.selectedScent || 'noscent',
-          item.isCustomScent ? `custom:${item.customScentNote}` : 'nocustom',
-          item.comboSelections ? JSON.stringify(item.comboSelections) : 'nocombo',
-        ].join('_');
-        return itemKey === optionsKey;
-      });
-
-      if (existingIndex > -1) {
-        const updated = [...prevItems];
-        updated[existingIndex].quantity += newItem.quantity;
-        return updated;
-      } else {
-        const itemWithId: CartItem = {
-          ...newItem,
-          id: 'cart-item-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
-        };
-        return [...prevItems, itemWithId];
-      }
-    });
+  // Mọi thao tác đều do server tính lại giá và tồn kho, frontend chỉ hiển thị kết quả
+  const apply = async (task: () => Promise<CartOut>) => {
+    setCart(await task());
   };
 
-  const updateQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev
-        .map((item) => {
-          if (item.id === id) {
-            const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter((item): item is CartItem => item !== null)
-    );
-  };
-
-  const removeFromCart = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const clearCart = () => {
-    setItems([]);
-  };
-
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
-  const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const addItem = (body: CartItemIn) => apply(() => cartApi.addCartItem(body));
+  const updateQuantity = (itemId: number, quantity: number) =>
+    apply(() => cartApi.updateCartItem(itemId, quantity));
+  const removeItem = (itemId: number) => apply(() => cartApi.removeCartItem(itemId));
+  const clear = () => apply(() => cartApi.clearCart());
 
   return (
     <CartContext.Provider
       value={{
-        items,
-        addToCart,
+        items: cart.items,
+        itemCount: cart.item_count,
+        subtotal: cart.subtotal,
+        shippingFee: cart.shipping_fee,
+        total: cart.total,
+        canCheckout: cart.can_checkout,
+        hasStockIssue: cart.has_stock_issue,
+        loading,
+        error,
+        refresh,
+        addItem,
         updateQuantity,
-        removeFromCart,
-        clearCart,
-        itemCount,
-        subtotal,
+        removeItem,
+        clear,
       }}
     >
       {children}

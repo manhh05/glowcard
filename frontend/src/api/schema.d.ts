@@ -1043,6 +1043,19 @@ export interface components {
             /** Selections */
             selections: components["schemas"]["app__schemas__order__SelectionOut"][];
         };
+        /** OrderItemPreview */
+        OrderItemPreview: {
+            /** Product Type */
+            product_type: string;
+            /** Product Name */
+            product_name: string;
+            /** Variant Label */
+            variant_label: string;
+            /** Quantity */
+            quantity: number;
+            /** Line Total */
+            line_total: number;
+        };
         /** OrderListItem */
         OrderListItem: {
             /** Order Code */
@@ -1057,6 +1070,8 @@ export interface components {
             total: number;
             /** Item Count */
             item_count: number;
+            /** Items */
+            items: components["schemas"]["OrderItemPreview"][];
             /**
              * Created At
              * Format: date-time

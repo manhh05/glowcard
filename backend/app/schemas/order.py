@@ -80,6 +80,14 @@ class OrderDetail(BaseModel):
     custom_scent_requests: list[CustomScentRequestOut]
 
 
+class OrderItemPreview(_FromAttrs):
+    product_type: str
+    product_name: str
+    variant_label: str
+    quantity: int
+    line_total: int
+
+
 class OrderListItem(BaseModel):
     order_code: str
     status: str
@@ -87,4 +95,5 @@ class OrderListItem(BaseModel):
     payment_status: str | None
     total: int
     item_count: int
+    items: list[OrderItemPreview]
     created_at: datetime

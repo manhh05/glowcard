@@ -29,6 +29,7 @@ from app.schemas.order import (
     PaymentOut,
     ShippingSnapshot,
     TimelineEntry,
+    OrderItemPreview,
 )
 from app.services import cart_service
 
@@ -117,6 +118,7 @@ def list_orders(db: Session, user: User) -> list[OrderListItem]:
                 payment_status=p.status if p else None,
                 total=o.total,
                 item_count=sum(i.quantity for i in o.items),
+                items=[OrderItemPreview.model_validate(i) for i in o.items],
                 created_at=o.created_at,
             )
         )

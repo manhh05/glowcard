@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ProductProvider } from './context/ProductContext';
 import { CartProvider } from './context/CartContext';
-import { OrderProvider } from './context/OrderContext';
 
 // Layouts
 import { CustomerLayout } from './components/CustomerLayout';
@@ -47,9 +45,7 @@ function ScrollToTop() {
 export default function App() {
   return (
     <AuthProvider>
-      <ProductProvider>
         <CartProvider>
-          <OrderProvider>
             <BrowserRouter>
               <ScrollToTop />
               <Routes>
@@ -89,9 +85,7 @@ export default function App() {
 
               </Routes>
             </BrowserRouter>
-          </OrderProvider>
         </CartProvider>
-      </ProductProvider>
     </AuthProvider>
   );
 }

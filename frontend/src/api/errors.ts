@@ -49,3 +49,14 @@ export function cartErrorMessage(e: unknown): string {
   }
   return authErrorMessage(e);
 }
+
+export function adminErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    // Backend admin trả sẵn thông báo tiếng Việt cho lỗi 400 và 409
+    if (e.status === 400 || e.status === 409) return e.message;
+    if (e.status === 404) {
+      return 'Không tìm thấy dữ liệu, có thể đã bị thay đổi. Vui lòng tải lại trang.';
+    }
+  }
+  return authErrorMessage(e);
+}

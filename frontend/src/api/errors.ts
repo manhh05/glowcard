@@ -22,7 +22,9 @@ export function authErrorMessage(
     case 422:
       return 'Thông tin chưa hợp lệ, vui lòng kiểm tra lại.';
     case 429:
-      return 'Bạn thao tác quá nhanh, vui lòng thử lại sau.';
+      return typeof e.detail === 'string' && e.detail
+        ? e.detail
+        : 'Bạn thao tác quá nhanh, vui lòng thử lại sau.';
     default:
       return e.message || 'Có lỗi xảy ra, vui lòng thử lại.';
   }

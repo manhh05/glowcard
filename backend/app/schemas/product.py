@@ -66,3 +66,5 @@ class ProductDetail(ProductListItem):
     components: list[ComboComponentOut]
     # Chỉ có với combo: các nến (đúng size của combo) để chọn mùi cho từng cây
     candle_variants: list[VariantOut]
+    # Chỉ có với combo có thiệp: các mùi thiệp để chọn cho ô thiệp
+    card_variants: list[VariantOut]

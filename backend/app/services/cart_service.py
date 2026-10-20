@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
-
 from app.models import (
     Cart,
     CartItem,
@@ -87,17 +86,14 @@ def _add_single(db: Session, cart: Cart, product: Product, data: CartItemIn) -> 
     text = _clean(data.custom_scent_text)
 
     if product.product_type == "CARD":
+        # Thiệp có nhiều mùi: khách phải chọn một mùi có sẵn, không có mùi tùy chỉnh
         if text or data.size_ml is not None:
-            raise _bad("Thiệp chưa hỗ trợ chọn mùi")
-        if data.variant_id is not None:
-            variant = _get_variant(db, data.variant_id)
-            if variant.product_id != product.id:
-                raise _bad("variant_id không thuộc sản phẩm này")
-        else:
-            active = [v for v in product.variants if v.is_active]
-            if len(active) != 1:
-                raise _bad("Cần variant_id")
-            variant = active[0]
+            raise _bad("Thiệp không hỗ trợ mùi tùy chỉnh")
+        if data.variant_id is None:
+            raise _bad("Vui lòng chọn mùi hương cho thiệp")
+        variant = _get_variant(db, data.variant_id)
+        if variant.product_id != product.id or variant.scent_id is None:
+            raise _bad("variant_id không hợp lệ")
     else:  # CANDLE
         if (data.variant_id is not None) == (text is not None):
             raise _bad("Chọn mùi có sẵn (variant_id) hoặc custom scent, không chọn cả hai")
@@ -144,6 +140,19 @@ def _add_single(db: Session, cart: Cart, product: Product, data: CartItemIn) -> 
         )
 
 
+def _combo_slots(product: Product) -> list[tuple[str, int | None]]:
+    """Danh sách các ô cần chọn mùi, theo thứ tự: các cây nến trước, rồi tới thiệp.
+    Mỗi phần tử là (loại, dung tích). Thứ tự này là slot_no 1, 2, 3... của combo."""
+    slots: list[tuple[str, int | None]] = []
+    for ctype in ("CANDLE", "CARD"):
+        for comp in sorted(
+            (c for c in product.components if c.component_type == ctype),
+            key=lambda c: c.id,
+        ):
+            slots += [(ctype, comp.size_ml)] * comp.quantity
+    return slots
+
+
 def _add_combo(db: Session, cart: Cart, product: Product, data: CartItemIn) -> None:
     if data.variant_id is not None or data.size_ml is not None or data.custom_scent_text:
         raise _bad("Combo chỉ cấu hình qua selections")
@@ -152,15 +161,12 @@ def _add_combo(db: Session, cart: Cart, product: Product, data: CartItemIn) -> N
     if len(combo_variants) != 1:
         raise _bad("Combo chưa được cấu hình giá")
 
-    # Danh sách size của từng cây nến theo thứ tự slot
-    slot_sizes: list[int | None] = []
-    for comp in sorted(product.components, key=lambda c: c.id):
-        if comp.component_type == "CANDLE":
-            slot_sizes += [comp.size_ml] * comp.quantity
-
+    slots = _combo_slots(product)
     sels = data.selections or []
-    if sorted(s.slot_no for s in sels) != list(range(1, len(slot_sizes) + 1)):
-        raise _bad(f"Combo cần chọn mùi cho đúng {len(slot_sizes)} cây nến (slot_no 1..{len(slot_sizes)})")
+    if sorted(s.slot_no for s in sels) != list(range(1, len(slots) + 1)):
+        raise _bad(
+            f"Combo cần chọn mùi cho đúng {len(slots)} sản phẩm (slot_no 1..{len(slots)})"
+        )
 
     item = CartItem(
         cart_id=cart.id,
@@ -169,12 +175,33 @@ def _add_combo(db: Session, cart: Cart, product: Product, data: CartItemIn) -> N
         quantity=data.quantity,
     )
     for s in sorted(sels, key=lambda x: x.slot_no):
+        slot_type, size = slots[s.slot_no - 1]
         text = _clean(s.custom_scent_text)
+
+        if slot_type == "CARD":
+            # Thiệp trong combo: chọn một mùi có sẵn, không có mùi tùy chỉnh
+            if text is not None or s.variant_id is None:
+                raise _bad(f"Slot {s.slot_no}: thiệp cần chọn một mùi có sẵn")
+            v = _get_variant(db, s.variant_id)
+            if v.product.product_type != "CARD" or v.scent_id is None:
+                raise _bad(f"Slot {s.slot_no}: variant không phải thiệp")
+            _require_stock(v)
+            item.selections.append(
+                CartItemSelection(
+                    slot_no=s.slot_no,
+                    slot_type="CARD",
+                    variant_id=v.id,
+                    is_custom=False,
+                    custom_scent_text=None,
+                )
+            )
+            continue
+
+        # Cây nến
         if (s.variant_id is not None) == (text is not None):
             raise _bad(f"Slot {s.slot_no}: chọn mùi có sẵn hoặc custom, không chọn cả hai")
         if s.variant_id is not None:
             v = _get_variant(db, s.variant_id)
-            size = slot_sizes[s.slot_no - 1]
             if v.product.product_type != "CANDLE" or v.scent_id is None:
                 raise _bad(f"Slot {s.slot_no}: variant không phải nến")
             if size is not None and v.size_ml != size:
@@ -257,6 +284,7 @@ def _load_items(db: Session, cart_id: int) -> list[CartItem]:
 
 
 def _card_variant(db: Session) -> ProductVariant | None:
+    """Không còn dùng để tính tồn kho (thiệp giờ chọn theo mùi), giữ lại để tương thích."""
     return db.scalar(
         select(ProductVariant)
         .join(Product, Product.id == ProductVariant.product_id)
@@ -271,20 +299,19 @@ def _card_variant(db: Session) -> ProductVariant | None:
 
 
 def _requirements(
-    item: CartItem, card_variant: ProductVariant | None
+    item: CartItem, card_variant: ProductVariant | None = None
 ) -> list[tuple[int, int]]:
-    """Dòng này cần bao nhiêu từ mỗi variant: [(variant_id, số lượng)]."""
+    """Dòng này cần bao nhiêu từ mỗi variant: [(variant_id, số lượng)].
+
+    Combo: mỗi ô nến (mùi có sẵn) và mỗi ô thiệp đều trỏ tới một variant cụ thể.
+    Tham số card_variant không còn tác dụng, giữ lại để các nơi gọi cũ không phải đổi.
+    """
     if item.product.product_type == "COMBO":
-        reqs = [
+        return [
             (s.variant_id, item.quantity)
             for s in item.selections
             if s.variant_id is not None
         ]
-        if card_variant is not None:
-            for comp in item.product.components:
-                if comp.component_type == "CARD":
-                    reqs.append((card_variant.id, comp.quantity * item.quantity))
-        return reqs
     if item.variant_id is not None:
         return [(item.variant_id, item.quantity)]
     return []  # nến custom: không trừ kho
@@ -303,9 +330,7 @@ def _unit_price(db: Session, item: CartItem) -> int | None:
 
 
 def _build_cart(db: Session, items: list[CartItem]) -> CartOut:
-    has_combo = any(i.product.product_type == "COMBO" for i in items)
-    card_variant = _card_variant(db) if has_combo else None
-    reqs = {i.id: _requirements(i, card_variant) for i in items}
+    reqs = {i.id: _requirements(i) for i in items}
 
     # Nhu cầu gộp cả giỏ theo từng variant
     need: dict[int, int] = defaultdict(int)
@@ -368,7 +393,11 @@ def _build_cart(db: Session, items: list[CartItem]) -> CartOut:
             )
 
         is_out = any(i.code == "OUT_OF_STOCK" for i in issues)
-        plain_variant = variants.get(item.variant_id) if item.product.product_type != "COMBO" else None
+        plain_variant = (
+            variants.get(item.variant_id)
+            if item.product.product_type != "COMBO"
+            else None
+        )
         stock_available = plain_variant.stock_quantity if plain_variant else None
         low_stock = any(
             0 < variants[vid].stock_quantity <= LOW_STOCK_THRESHOLD

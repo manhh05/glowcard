@@ -584,7 +584,7 @@ const OrderDetailModal: React.FC<{
                         <div className="text-[11px] text-stone-600 pl-2 border-l-2 border-stone-200">
                           {item.selections.map((sel) => (
                             <p key={sel.slot_no}>
-                              Nến {sel.slot_no}:{' '}
+                              {sel.slot_type === 'CARD' ? 'Thiệp' : `Nến ${sel.slot_no}`}:{' '}
                               {sel.is_custom
                                 ? `Tự phối (${sel.custom_scent_text})`
                                 : sel.scent_name}

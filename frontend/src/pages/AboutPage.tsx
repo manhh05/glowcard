@@ -24,7 +24,7 @@ export const AboutPage: React.FC = () => {
       {/* Story & Philosophy Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <div className="rounded-3xl overflow-hidden border border-[#EADBCE] bg-[#FAF6F0] aspect-4/3 shadow-sm">
-          <ProductArtwork type="hero" />
+          <ProductArtwork type="hero" imageUrl="/images/about.jpg" />
         </div>
 
         <div className="space-y-4 text-xs sm:text-sm text-stone-600 leading-relaxed font-light">

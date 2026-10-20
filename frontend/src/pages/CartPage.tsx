@@ -192,7 +192,7 @@ export const CartPage: React.FC = () => {
                   }`}
                 >
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-[#FAF6F0] border border-stone-100 shrink-0">
-                    <ProductArtwork type={toUiType(item.product_type)} title={item.product_name} />
+                    <ProductArtwork type={toUiType(item.product_type)} title={item.product_name} imageUrl={item.image_url} />
                   </div>
 
                   <div className="space-y-1.5 flex-1 min-w-0">

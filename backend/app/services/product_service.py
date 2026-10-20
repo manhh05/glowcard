@@ -112,6 +112,28 @@ def _candle_variants_for(db: Session, product: Product) -> list[ProductVariant]:
     )
 
 
+def _card_variants_for(db: Session, product: Product) -> list[ProductVariant]:
+    """Các mùi thiệp khách được chọn cho ô thiệp của combo."""
+    if product.product_type != "COMBO":
+        return []
+    if not any(c.component_type == "CARD" for c in product.components):
+        return []
+    return list(
+        db.scalars(
+            select(ProductVariant)
+            .join(Product, Product.id == ProductVariant.product_id)
+            .where(
+                Product.product_type == "CARD",
+                Product.is_active.is_(True),
+                ProductVariant.is_active.is_(True),
+                ProductVariant.scent_id.is_not(None),
+            )
+            .options(selectinload(ProductVariant.scent))
+            .order_by(ProductVariant.scent_id)
+        )
+    )
+
+
 def list_products(
     db: Session,
     product_type: str | None = None,
@@ -149,4 +171,5 @@ def get_product(db: Session, slug: str) -> ProductDetail | None:
         variants=variants,
         components=product.components,
         candle_variants=_candle_variants_for(db, product),
+        card_variants=_card_variants_for(db, product),
     )

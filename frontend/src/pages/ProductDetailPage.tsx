@@ -284,7 +284,7 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
         {/* Left: visual */}
         <div className="lg:col-span-6 lg:sticky lg:top-24 space-y-4">
           <div className="relative rounded-3xl overflow-hidden border border-[#EADBCE] bg-[#FAF6F0] aspect-4/3 w-full shadow-2xs">
-            <ProductArtwork type={product.type} title={product.name} />
+            <ProductArtwork type={product.type} title={product.name} imageUrl={product.image} />
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-[#EADBCE] text-xs text-stone-600 space-y-2">

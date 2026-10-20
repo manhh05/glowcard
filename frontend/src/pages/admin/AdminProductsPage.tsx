@@ -255,7 +255,7 @@ export const AdminProductsPage: React.FC = () => {
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-[#FAF6F0] overflow-hidden shrink-0 border border-stone-200">
-                              <ProductArtwork type={toUiType(p.product_type)} title={p.name} />
+                              <ProductArtwork type={toUiType(p.product_type)} title={p.name} imageUrl={p.image_url} />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-stone-900 truncate max-w-xs">
@@ -509,6 +509,7 @@ const ProductEditor: React.FC<{
   const [story, setStory] = useState(current.story ?? '');
   const [burnTime, setBurnTime] = useState(current.burn_time ?? '');
   const [ingredients, setIngredients] = useState(current.ingredients ?? '');
+  const [imageUrl, setImageUrl] = useState(current.image_url ?? '');
   const [featured, setFeatured] = useState(current.featured);
   const [allowCustom, setAllowCustom] = useState(current.allow_custom_scent);
   const [infoBusy, setInfoBusy] = useState(false);
@@ -527,6 +528,7 @@ const ProductEditor: React.FC<{
         story: story.trim() || null,
         burn_time: burnTime.trim() || null,
         ingredients: ingredients.trim() || null,
+        image_url: imageUrl.trim() || null,
         featured,
         allow_custom_scent: allowCustom,
       });
@@ -706,6 +708,21 @@ const ProductEditor: React.FC<{
               className={inputCls}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-stone-700 font-medium mb-1">Đường dẫn ảnh sản phẩm:</label>
+          <input
+            type="text"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="/images/ten-anh.jpg"
+            className={inputCls}
+          />
+          <p className="text-[11px] text-stone-500 mt-1">
+            Để trống thì web hiện hình minh họa vẽ sẵn. Ảnh phải được tải lên thư mục
+            frontend/public/images của dự án trước, rồi nhập đường dẫn bắt đầu bằng /images/.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">

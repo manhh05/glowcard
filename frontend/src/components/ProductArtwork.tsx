@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProductType } from '../types';
 
 interface ProductArtworkProps {
@@ -6,9 +6,11 @@ interface ProductArtworkProps {
   className?: string;
   variant?: string;
   title?: string;
+  /** Đường dẫn ảnh thật (ví dụ /images/nen.jpg). Không có, hoặc tải lỗi thì hiện hình minh họa vẽ sẵn. */
+  imageUrl?: string | null;
 }
 
-export const ProductArtwork: React.FC<ProductArtworkProps> = ({
+const ProductArtworkDrawing: React.FC<ProductArtworkProps> = ({
   type,
   className = 'w-full h-full',
   variant,
@@ -253,4 +255,22 @@ export const ProductArtwork: React.FC<ProductArtworkProps> = ({
       </svg>
     </div>
   );
+};
+
+export const ProductArtwork: React.FC<ProductArtworkProps> = ({ imageUrl, ...rest }) => {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+
+  if (imageUrl && imageUrl !== failedUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt={rest.title ?? ''}
+        loading={rest.type === 'hero' ? 'eager' : 'lazy'}
+        onError={() => setFailedUrl(imageUrl)}
+        className={`object-cover ${rest.className ?? 'w-full h-full'}`}
+      />
+    );
+  }
+
+  return <ProductArtworkDrawing {...rest} />;
 };

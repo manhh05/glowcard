@@ -1184,6 +1184,8 @@ export interface components {
             components: components["schemas"]["ComboComponentOut"][];
             /** Candle Variants */
             candle_variants: components["schemas"]["VariantOut"][];
+            /** Card Variants */
+            card_variants: components["schemas"]["VariantOut"][];
         };
         /** ProductListItem */
         ProductListItem: {

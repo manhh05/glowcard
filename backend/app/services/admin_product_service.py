@@ -375,9 +375,16 @@ def list_scents(db: Session) -> list[AdminScentOut]:
 
 
 def _relabel(db: Session, scent: Scent) -> None:
-    for v in db.scalars(select(ProductVariant).where(ProductVariant.scent_id == scent.id)):
+    variants = db.scalars(
+        select(ProductVariant)
+        .where(ProductVariant.scent_id == scent.id)
+        .options(selectinload(ProductVariant.product))
+    )
+    for v in variants:
         if v.size_ml is not None:
             v.label = f"{v.size_ml}ml - {scent.name_en}"
+        elif v.product.product_type == "CARD":
+            v.label = f"Thiệp - {scent.name_en}"
 
 
 def create_scent(db: Session, data: ScentCreateIn) -> AdminScentOut:

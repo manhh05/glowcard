@@ -461,7 +461,7 @@ export const CheckoutPage: React.FC = () => {
                   className="flex gap-3 text-xs py-2 border-b border-stone-100 last:border-b-0"
                 >
                   <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#FAF6F0] shrink-0 border border-stone-200">
-                    <ProductArtwork type={toUiType(item.product_type)} title={item.product_name} />
+                    <ProductArtwork type={toUiType(item.product_type)} title={item.product_name} imageUrl={item.image_url} />
                   </div>
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <p className="font-medium text-stone-900 truncate">{item.product_name}</p>

@@ -68,7 +68,7 @@ export const HomePage: React.FC = () => {
             {/* Right Column: Hero Visual Asset */}
             <div className="lg:col-span-6">
               <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#E4D5C5] aspect-4/3 sm:aspect-16/10">
-                <ProductArtwork type="hero" />
+                <ProductArtwork type="hero" imageUrl="/images/hero.jpg" />
               </div>
             </div>
 
@@ -96,7 +96,7 @@ export const HomePage: React.FC = () => {
             className="group relative rounded-2xl bg-white border border-[#EADBCE] overflow-hidden p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
           >
             <div className="aspect-4/3 rounded-xl overflow-hidden bg-[#FAF6F0] mb-5 border border-stone-100">
-              <ProductArtwork type="candle" />
+              <ProductArtwork type="candle" imageUrl="/images/home-candle.jpg" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -121,7 +121,7 @@ export const HomePage: React.FC = () => {
             className="group relative rounded-2xl bg-white border border-[#EADBCE] overflow-hidden p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
           >
             <div className="aspect-4/3 rounded-xl overflow-hidden bg-[#FAF6F0] mb-5 border border-stone-100">
-              <ProductArtwork type="wax_card" />
+              <ProductArtwork type="wax_card" imageUrl="/images/home-card.png" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -146,7 +146,7 @@ export const HomePage: React.FC = () => {
             className="group relative rounded-2xl bg-white border border-[#EADBCE] overflow-hidden p-6 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
           >
             <div className="aspect-4/3 rounded-xl overflow-hidden bg-[#FAF6F0] mb-5 border border-stone-100">
-              <ProductArtwork type="combo" />
+              <ProductArtwork type="combo" imageUrl="/images/home-combo.jpg" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">

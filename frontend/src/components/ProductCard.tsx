@@ -18,7 +18,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       <div className="relative aspect-4/3 w-full bg-[#FAF6F0] overflow-hidden border-b border-[#F0E6DB]">
         <div className={`w-full h-full ${soldOut ? 'opacity-50' : ''}`}>
-          <ProductArtwork type={product.type} title={product.name} />
+          <ProductArtwork type={product.type} title={product.name} imageUrl={product.image} />
         </div>
 
         {soldOut && (

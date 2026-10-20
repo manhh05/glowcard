@@ -225,7 +225,7 @@ export const OrderConfirmationPage: React.FC = () => {
                     <div className="text-[11px] text-stone-600 space-y-0.5 pt-1">
                       {item.selections.map((sel) => (
                         <div key={sel.slot_no}>
-                          • Nến {sel.slot_no}:{' '}
+                          • {sel.slot_type === 'CARD' ? 'Thiệp' : `Nến ${sel.slot_no}`}:{' '}
                           {sel.is_custom
                             ? `Tự phối (${sel.custom_scent_text})`
                             : sel.scent_name}

@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { ProductArtwork } from '../components/ProductArtwork';
 import { useProductDetail } from '../hooks/useCatalog';
 import { toProduct } from '../api/adapters';
-import type { CartItemIn, ProductDetail, ProductVariant } from '../api/types';
 import { cartErrorMessage } from '../api/errors';
+import type { CartItemIn, ProductDetail, ProductVariant } from '../api/types';
 import { formatVND } from '../utils/formatters';
 import {
   Sparkles,
@@ -85,6 +85,9 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   const product = useMemo(() => toProduct(detail), [detail]);
   const variants = detail.variants;
 
+  const firstInStock = (list: ProductVariant[]) =>
+    list.find((v) => v.stock_quantity > 0) ?? list[0];
+
   // ---------- Nến lẻ ----------
   const sizes = useMemo(
     () =>
@@ -95,8 +98,6 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   );
   const variantsAt = (size: number | null) =>
     variants.filter((v) => v.size_ml === size && v.scent !== null);
-  const firstInStock = (list: ProductVariant[]) =>
-    list.find((v) => v.stock_quantity > 0) ?? list[0];
 
   const initialSize =
     sizes.find((s) => variantsAt(s).some((v) => v.stock_quantity > 0)) ?? sizes[0] ?? null;
@@ -119,10 +120,15 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
     setSelectedScentId((same ?? firstInStock(list))?.scent?.id ?? null);
   };
 
-  // ---------- Thiệp ----------
-  const cardVariant = product.type === 'wax_card' ? variants[0] ?? null : null;
+  // ---------- Thiệp lẻ (chọn một trong các mùi) ----------
+  const cardOptions = product.type === 'wax_card' ? variants.filter((v) => v.scent !== null) : [];
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(
+    () => firstInStock(cardOptions)?.id ?? null
+  );
+  const selectedCard = cardOptions.find((v) => v.id === selectedCardId) ?? null;
 
   // ---------- Combo ----------
+  // Thứ tự ô khớp với backend: các cây nến trước, rồi tới thiệp
   const slotSizes = useMemo(
     () =>
       detail.components
@@ -130,8 +136,16 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
         .flatMap((c) => Array.from({ length: c.quantity }, () => c.size_ml)),
     [detail.components]
   );
+  const cardSlotCount = useMemo(
+    () =>
+      detail.components
+        .filter((c) => c.component_type === 'CARD')
+        .reduce((n, c) => n + c.quantity, 0),
+    [detail.components]
+  );
   const optionsFor = (size: number | null) =>
     detail.candle_variants.filter((v) => v.size_ml === size);
+  const cardChoices = detail.card_variants;
 
   const [comboSlots, setComboSlots] = useState<ComboSlot[]>(() =>
     slotSizes.map((size, i) => {
@@ -143,6 +157,16 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   );
   const updateSlot = (idx: number, patch: Partial<ComboSlot>) =>
     setComboSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+
+  const [cardSlots, setCardSlots] = useState<(number | null)[]>(() =>
+    Array.from({ length: cardSlotCount }, (_, i) => {
+      const inStock = cardChoices.filter((v) => v.stock_quantity > 0);
+      const pick = inStock.length ? inStock[i % inStock.length] : cardChoices[0];
+      return pick?.id ?? null;
+    })
+  );
+  const updateCardSlot = (idx: number, variantId: number) =>
+    setCardSlots((prev) => prev.map((v, i) => (i === idx ? variantId : v)));
 
   const comboSummary = detail.components
     .map((c) =>
@@ -161,16 +185,16 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   let currentUnitPrice = product.price;
   if (product.type === 'candle') {
     currentUnitPrice = isCustomScent ? sizePrice : selectedVariant?.price ?? sizePrice;
-  } else if (product.type === 'wax_card' && cardVariant) {
-    currentUnitPrice = cardVariant.price;
+  } else if (product.type === 'wax_card') {
+    currentUnitPrice = selectedCard?.price ?? product.price;
   }
 
   let stockInfo: { ok: boolean; text: string } | null = null;
   if (product.type === 'candle' && !isCustomScent && selectedVariant) {
     const n = selectedVariant.stock_quantity;
     stockInfo = n > 0 ? { ok: true, text: `Còn hàng (${n})` } : { ok: false, text: 'Tạm hết hàng' };
-  } else if (product.type === 'wax_card' && cardVariant) {
-    const n = cardVariant.stock_quantity;
+  } else if (product.type === 'wax_card' && selectedCard) {
+    const n = selectedCard.stock_quantity;
     stockInfo = n > 0 ? { ok: true, text: `Còn hàng (${n})` } : { ok: false, text: 'Tạm hết hàng' };
   } else if (product.type === 'combo') {
     stockInfo = detail.in_stock
@@ -216,11 +240,15 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
         body = { product_id: detail.id, quantity, variant_id: selectedVariant.id };
       }
     } else if (product.type === 'wax_card') {
-      if (!cardVariant || cardVariant.stock_quantity <= 0) {
-        setValidationError('Sản phẩm tạm hết hàng.');
+      if (cardOptions.length === 0) {
+        setValidationError('Thiệp hiện chưa có mùi hương nào để chọn.');
         return;
       }
-      body = { product_id: detail.id, quantity, variant_id: cardVariant.id };
+      if (!selectedCard || selectedCard.stock_quantity <= 0) {
+        setValidationError('Mùi hương này tạm hết hàng, vui lòng chọn mùi khác.');
+        return;
+      }
+      body = { product_id: detail.id, quantity, variant_id: selectedCard.id };
     } else {
       for (let i = 0; i < comboSlots.length; i++) {
         const slot = comboSlots[i];
@@ -237,14 +265,32 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
           }
         }
       }
+      for (let i = 0; i < cardSlots.length; i++) {
+        const v = cardChoices.find((x) => x.id === cardSlots[i]);
+        if (!v || v.stock_quantity <= 0) {
+          setValidationError(
+            cardSlotCount > 1
+              ? `Thiệp số ${i + 1}: mùi đã chọn tạm hết hàng, vui lòng chọn mùi khác.`
+              : 'Mùi thiệp đã chọn tạm hết hàng, vui lòng chọn mùi khác.'
+          );
+          return;
+        }
+      }
       body = {
         product_id: detail.id,
         quantity,
-        selections: comboSlots.map((slot, i) =>
-          slot.isCustom
-            ? { slot_no: i + 1, custom_scent_text: slot.text.trim() }
-            : { slot_no: i + 1, variant_id: slot.variantId }
-        ),
+        selections: [
+          ...comboSlots.map((slot, i) =>
+            slot.isCustom
+              ? { slot_no: i + 1, custom_scent_text: slot.text.trim() }
+              : { slot_no: i + 1, variant_id: slot.variantId }
+          ),
+          // Ô thiệp đánh số tiếp sau các cây nến
+          ...cardSlots.map((variantId, i) => ({
+            slot_no: comboSlots.length + i + 1,
+            variant_id: variantId,
+          })),
+        ],
       };
     }
 
@@ -268,6 +314,45 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
   const hasCustomScentActive =
     (product.type === 'candle' && isCustomScent) ||
     (product.type === 'combo' && comboSlots.some((s) => s.isCustom));
+
+  // Lưới chọn mùi dùng chung cho nến lẻ và thiệp lẻ
+  const renderScentGrid = (
+    options: ProductVariant[],
+    isSelected: (v: ProductVariant) => boolean,
+    onPick: (v: ProductVariant) => void
+  ) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+      {options.map((v) => {
+        const soldOut = v.stock_quantity <= 0;
+        const selected = isSelected(v);
+        return (
+          <button
+            key={v.id}
+            type="button"
+            disabled={soldOut}
+            onClick={() => onPick(v)}
+            className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+              soldOut
+                ? 'border-stone-200 bg-stone-50 text-stone-400 cursor-not-allowed opacity-60'
+                : selected
+                ? 'border-amber-800 bg-amber-50/80 text-amber-950 font-medium'
+                : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
+            }`}
+          >
+            <span className="font-semibold">
+              {v.scent?.name_vi}
+              {soldOut && <span className="ml-1.5 text-[11px] font-medium">(Hết hàng)</span>}
+            </span>
+            {v.scent?.description && (
+              <span className="text-[11px] text-stone-500 mt-1 line-clamp-1">
+                {v.scent.description}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -387,38 +472,14 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
                 <span className="text-[11px] text-stone-500">{candleVariants.length} mùi hương</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {candleVariants.map((v) => {
-                  const soldOut = v.stock_quantity <= 0;
-                  const isSelected = !isCustomScent && selectedScentId === v.scent?.id;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      disabled={soldOut}
-                      onClick={() => {
-                        setSelectedScentId(v.scent?.id ?? null);
-                        setIsCustomScent(false);
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                        soldOut
-                          ? 'border-stone-200 bg-stone-50 text-stone-400 cursor-not-allowed opacity-60'
-                          : isSelected
-                          ? 'border-amber-800 bg-amber-50/80 text-amber-950 font-medium'
-                          : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
-                      }`}
-                    >
-                      <span className="font-semibold">
-                        {v.scent?.name_vi}
-                        {soldOut && <span className="ml-1.5 text-[11px] font-medium">(Hết hàng)</span>}
-                      </span>
-                      <span className="text-[11px] text-stone-500 mt-1 line-clamp-1">
-                        {v.scent?.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {renderScentGrid(
+                candleVariants,
+                (v) => !isCustomScent && selectedScentId === v.scent?.id,
+                (v) => {
+                  setSelectedScentId(v.scent?.id ?? null);
+                  setIsCustomScent(false);
+                }
+              )}
 
               {product.allowCustomScent && (
                 <div className="pt-2">
@@ -483,16 +544,38 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
             </div>
           )}
 
-          {/* Thiệp sáp: chưa có lựa chọn mùi vì business chưa chốt */}
+          {/* Thiệp lẻ: chọn mùi hương */}
+          {product.type === 'wax_card' && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-stone-900 uppercase tracking-wider block">
+                  Chọn mùi hương
+                </label>
+                <span className="text-[11px] text-stone-500">{cardOptions.length} mùi hương</span>
+              </div>
 
-          {/* Combo: chọn mùi cho từng cây nến */}
-          {product.type === 'combo' && slotSizes.length > 0 && (
+              {cardOptions.length === 0 ? (
+                <p className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-500">
+                  Thiệp đang được cập nhật mùi hương. Vui lòng quay lại sau.
+                </p>
+              ) : (
+                renderScentGrid(
+                  cardOptions,
+                  (v) => selectedCardId === v.id,
+                  (v) => setSelectedCardId(v.id)
+                )
+              )}
+            </div>
+          )}
+
+          {/* Combo: chọn mùi cho từng cây nến và cho thiệp */}
+          {product.type === 'combo' && (slotSizes.length > 0 || cardSlotCount > 0) && (
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-stone-900 uppercase tracking-wider block">
-                  Tùy chọn mùi hương cho từng nến ({slotSizes.length} nến)
+                  Tùy chọn mùi hương cho từng sản phẩm
                 </label>
-                <span className="text-[11px] text-stone-500">Mỗi nến có thể chọn 1 mùi riêng</span>
+                <span className="text-[11px] text-stone-500">Mỗi sản phẩm chọn 1 mùi riêng</span>
               </div>
 
               <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-700">
@@ -547,6 +630,35 @@ const ProductDetailView: React.FC<{ detail: ProductDetail }> = ({ detail }) => {
                           className="w-full p-2 text-xs rounded-lg border border-amber-300 text-stone-900 bg-amber-50/30 placeholder:text-stone-400"
                         />
                       </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Ô thiệp: chỉ chọn mùi có sẵn */}
+                {cardSlots.map((variantId, idx) => (
+                  <div key={`card-${idx}`} className="p-4 rounded-xl bg-white border border-stone-200 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-stone-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                        {cardSlotCount > 1 ? `Thiệp sáp thơm số ${idx + 1}` : 'Thiệp sáp thơm'}
+                      </span>
+                    </div>
+
+                    {cardChoices.length === 0 ? (
+                      <p className="text-xs text-stone-500">Thiệp đang được cập nhật mùi hương.</p>
+                    ) : (
+                      <select
+                        value={variantId ?? ''}
+                        onChange={(e) => updateCardSlot(idx, Number(e.target.value))}
+                        className="w-full p-2.5 text-xs rounded-lg border border-stone-300 bg-stone-50 focus:bg-white text-stone-800"
+                      >
+                        {cardChoices.map((v) => (
+                          <option key={v.id} value={v.id} disabled={v.stock_quantity <= 0}>
+                            {v.scent?.name_vi}
+                            {v.stock_quantity <= 0 ? ' (Hết hàng)' : ''}
+                          </option>
+                        ))}
+                      </select>
                     )}
                   </div>
                 ))}

@@ -235,10 +235,10 @@ export const CartPage: React.FC = () => {
                       {/* Mùi từng cây nến trong combo */}
                       {item.selections.length > 0 && (
                         <div className="p-2 rounded-lg bg-stone-50 border border-stone-200 text-[11px] space-y-1">
-                          <p className="font-semibold text-stone-900">Chi tiết mùi từng nến:</p>
+                          <p className="font-semibold text-stone-900">Chi tiết mùi hương:</p>
                           {item.selections.map((sel) => (
                             <div key={sel.slot_no} className="text-stone-700">
-                              <span>• Nến {sel.slot_no}: </span>
+                              <span>• {sel.slot_type === 'CARD' ? 'Thiệp' : `Nến ${sel.slot_no}`}: </span>
                               {sel.is_custom ? (
                                 <span className="text-amber-900 font-medium">
                                   Tự phối ({sel.custom_scent_text || 'Theo yêu cầu'})

@@ -12,6 +12,7 @@ import {
   getPaymentStatusText,
 } from '../utils/formatters';
 import { ProductArtwork } from '../components/ProductArtwork';
+import { CancelOrderButton } from '../components/CancelOrderButton';
 import { Truck, ExternalLink, ArrowRight, ShoppingBag } from 'lucide-react';
 
 const orderStatusClass = (status: string) => {
@@ -200,6 +201,14 @@ export const OrderHistoryPage: React.FC = () => {
                     </Link>
                   </div>
                 </div>
+
+                <CancelOrderButton
+                  compact
+                  orderCode={order.order_code}
+                  status={order.status}
+                  paymentStatus={order.payment_status}
+                  onCancelled={reload}
+                />
               </div>
             );
           })}

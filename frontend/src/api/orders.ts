@@ -8,3 +8,10 @@ export const getOrder = (orderCode: string) =>
   api<OrderDetail>(`/orders/${encodeURIComponent(orderCode)}`, { auth: 'customer' });
 
 export const listOrders = () => api<OrderListItem[]>('/orders', { auth: 'customer' });
+
+export const cancelOrder = (orderCode: string, reason: string | null) =>
+  api<OrderDetail>(`/orders/${encodeURIComponent(orderCode)}/cancel`, {
+    method: 'POST',
+    body: { reason },
+    auth: 'customer',
+  });

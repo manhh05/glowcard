@@ -26,6 +26,7 @@ from app.schemas.admin import (
 )
 from app.schemas.order import OrderItemOut, ShippingSnapshot, TimelineEntry
 from app.services.order_service import _latest_payment
+from app.services.order_cancel_service import close_pending_custom_scents
 
 # Các bước chuyển trạng thái được phép. Muốn đổi luật thì sửa ở đây.
 ALLOWED: dict[str, set[str]] = {
@@ -186,6 +187,7 @@ def update_status(
         )
 
     if data.status == "CANCELLED":
+        close_pending_custom_scents(order)
         _restore_stock(db, order)
         for p in order.payments:
             if p.status == "PENDING":

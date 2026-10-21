@@ -8,6 +8,7 @@ import {
   formatVND,
   formatDateTimeVi,
 } from '../utils/formatters';
+import { CancelOrderButton } from '../components/CancelOrderButton';
 import {
   CheckCircle2,
   Clock,
@@ -182,6 +183,13 @@ export const OrderTrackingPage: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-3xl border border-[#EADBCE] p-6 sm:p-10 shadow-2xs space-y-10">
+        <CancelOrderButton
+          orderCode={order.order_code}
+          status={order.status}
+          paymentStatus={order.payment?.status}
+          onCancelled={reload}
+        />
+
         {/* Thông báo trạng thái đặc biệt */}
         {isCancelled && (
           <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs space-y-1">

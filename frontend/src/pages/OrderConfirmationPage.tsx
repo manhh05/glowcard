@@ -11,7 +11,8 @@ import {
   getCustomScentStatusText,
 } from '../utils/formatters';
 import { ProductArtwork } from '../components/ProductArtwork';
-import { CheckCircle2, MapPin, CreditCard, Sparkles, Truck } from 'lucide-react';
+import { CancelOrderButton } from '../components/CancelOrderButton';
+import { CheckCircle2, MapPin, CreditCard, Sparkles, Truck, Ban } from 'lucide-react';
 
 export const OrderConfirmationPage: React.FC = () => {
   // Tham số trên URL chính là mã đơn hàng (order_code), ví dụ GC-20261012-AB3K
@@ -60,6 +61,7 @@ export const OrderConfirmationPage: React.FC = () => {
   const payment = order.payment;
   const isPaid = payment?.status === 'PAID';
   const isPayos = payment?.method === 'PAYOS';
+  const isCancelled = order.status === 'CANCELLED';
   const address = [
     order.shipping.address_line,
     order.shipping.ward,
@@ -72,16 +74,33 @@ export const OrderConfirmationPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Success Notification Banner */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#FAF6F0] border border-[#EADBCE] text-center space-y-3 shadow-2xs">
-        <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100/80 text-emerald-800 flex items-center justify-center">
-          <CheckCircle2 className="w-8 h-8" />
+      <div
+        className={`p-6 md:p-8 rounded-3xl border text-center space-y-3 shadow-2xs ${
+          isCancelled ? 'bg-red-50 border-red-200' : 'bg-[#FAF6F0] border-[#EADBCE]'
+        }`}
+      >
+        <div
+          className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center ${
+            isCancelled ? 'bg-red-100 text-red-700' : 'bg-emerald-100/80 text-emerald-800'
+          }`}
+        >
+          {isCancelled ? <Ban className="w-8 h-8" /> : <CheckCircle2 className="w-8 h-8" />}
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl text-stone-900 font-normal">
-          Đặt Hàng Thành Công!
+          {isCancelled ? 'Đơn Hàng Đã Được Hủy' : 'Đặt Hàng Thành Công!'}
         </h1>
         <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto leading-relaxed">
-          Cảm ơn bạn đã lựa chọn Glowcard. Đơn hàng <strong>#{order.order_code}</strong> đã được ghi
-          nhận vào hệ thống.
+          {isCancelled ? (
+            <>
+              Đơn hàng <strong>#{order.order_code}</strong> đã được hủy. Sản phẩm trong đơn đã được
+              trả lại kho.
+            </>
+          ) : (
+            <>
+              Cảm ơn bạn đã lựa chọn Glowcard. Đơn hàng <strong>#{order.order_code}</strong> đã được
+              ghi nhận vào hệ thống.
+            </>
+          )}
         </p>
 
         <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
@@ -99,6 +118,15 @@ export const OrderConfirmationPage: React.FC = () => {
           >
             Lịch sử đơn hàng
           </Link>
+        </div>
+
+        <div className="pt-1 max-w-md mx-auto text-left">
+          <CancelOrderButton
+            orderCode={order.order_code}
+            status={order.status}
+            paymentStatus={payment?.status}
+            onCancelled={reload}
+          />
         </div>
       </div>
 

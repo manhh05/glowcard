@@ -10,6 +10,10 @@ class OrderCreateIn(BaseModel):
     note: str | None = Field(None, max_length=500)
 
 
+class OrderCancelIn(BaseModel):
+    reason: str | None = Field(None, max_length=300)
+
+
 class _FromAttrs(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
